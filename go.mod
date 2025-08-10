@@ -1,4 +1,4 @@
-module github.com/vikimaster2/go-hnswlib
+module github.com/viktordanov/go-hnswlib
 
 go 1.24
 
