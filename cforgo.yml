@@ -18,7 +18,7 @@ TRANSLATOR:
   Rules:
     global:
       - action: accept
-        from: "^(init|load|save|free|add|search|set)"
+        from: "^(init|load|save|free|add|search|set|resize|get|mark|unmark)"
       - action: accept
         from: "^HNSW"
       - transform: export

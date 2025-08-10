@@ -25,9 +25,11 @@ func main() {
     index := hnsw.NewL2(128, 1000, 16, 200, 42)
     defer index.Close()
 
-    // Add vectors
+    // Add vectors (safe - returns error)
     vec := []float32{0.1, 0.2, 0.3, ...} // 128 dimensions
-    index.Add(vec, 0)
+    if err := index.Add(vec, 0); err != nil {
+        log.Fatal(err)
+    }
 
     // Search for 5 nearest neighbors
     query := []float32{0.1, 0.2, 0.3, ...} // 128 dimensions
@@ -37,19 +39,36 @@ func main() {
 }
 ```
 
+**📖 More Examples:** See [`examples.go`](examples.go) for comprehensive examples of all spaces and features.
+
+**⚡ Benchmarks:** See [`experiments/`](experiments/) for comprehensive EF parameter studies and performance analysis.
+
 ## API
 
 **Create Index:**
 - `hnsw.NewL2(dim, maxElements, M, efConstruction, seed)` - Euclidean distance
 - `hnsw.NewIP(dim, maxElements, M, efConstruction, seed)` - Inner product
-- `hnsw.Load(space, dim, path)` - Load from file
+- `hnsw.NewCosine(dim, maxElements, M, efConstruction, seed)` - Cosine similarity
+- `index, err := hnsw.Load(space, dim, path)` - Load from file
 
 **Operations:**
-- `index.Add(vec, label)` - Add vector with label
-- `index.SearchK(query, k)` - Find k nearest neighbors  
-- `index.Save(path)` - Save to file
+- `err := index.Add(vec, label)` - Add vector with label (safe, checks capacity)
+- `labels, distances, count := index.SearchK(query, k)` - Find k nearest neighbors  
+- `labels, similarities, count := index.SearchKSimilarity(query, k)` - Get similarities instead of distances
+- `err := index.Save(path)` - Save to file (safe)
+- `err := index.Resize(newMaxElements)` - Resize index capacity (safe)
 - `index.SetEf(ef)` - Set search accuracy
 - `index.Close()` - Free memory
+
+**Introspection:**
+- `index.GetCurrentCount()` - Number of elements in index
+- `index.GetMaxElements()` - Maximum capacity
+- `index.GetDeletedCount()` - Number of deleted elements
+- `index.IsCosineSpace()` - Check if using cosine similarity
+
+**Delete Management:**
+- `err := index.MarkDeleted(label)` - Soft delete element (safe)
+- `err := index.UnmarkDeleted(label)` - Restore deleted element (safe)
 
 ## Development
 

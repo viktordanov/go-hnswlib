@@ -52,7 +52,20 @@ func LoadHNSW(Location []byte, Dim int32, Stype byte) *HNSW {
 	return __v
 }
 
-// SaveHNSW function as declared in wrapper/hnsw_wrapper.h:8
+// LoadHNSWSafe function as declared in wrapper/hnsw_wrapper.h:10
+func LoadHNSWSafe(Location []byte, Dim int32, Stype byte) *HNSW {
+	cLocation, cLocationAllocMap := (*C.char)(unsafe.Pointer((*sliceHeader)(unsafe.Pointer(&Location)).Data)), cgoAllocsUnknown
+	cDim, cDimAllocMap := (C.int)(Dim), cgoAllocsUnknown
+	cStype, cStypeAllocMap := (C.char)(Stype), cgoAllocsUnknown
+	__ret := C.loadHNSWSafe(cLocation, cDim, cStype)
+	runtime.KeepAlive(cStypeAllocMap)
+	runtime.KeepAlive(cDimAllocMap)
+	runtime.KeepAlive(cLocationAllocMap)
+	__v := *(**HNSW)(unsafe.Pointer(&__ret))
+	return __v
+}
+
+// SaveHNSW function as declared in wrapper/hnsw_wrapper.h:11
 func SaveHNSW(Index *HNSW, Location []byte) *HNSW {
 	cIndex, cIndexAllocMap := (C.HNSW)(unsafe.Pointer(Index)), cgoAllocsUnknown
 	cLocation, cLocationAllocMap := (*C.char)(unsafe.Pointer((*sliceHeader)(unsafe.Pointer(&Location)).Data)), cgoAllocsUnknown
@@ -63,14 +76,14 @@ func SaveHNSW(Index *HNSW, Location []byte) *HNSW {
 	return __v
 }
 
-// FreeHNSW function as declared in wrapper/hnsw_wrapper.h:9
+// FreeHNSW function as declared in wrapper/hnsw_wrapper.h:12
 func FreeHNSW(Index *HNSW) {
 	cIndex, cIndexAllocMap := (C.HNSW)(unsafe.Pointer(Index)), cgoAllocsUnknown
 	C.freeHNSW(cIndex)
 	runtime.KeepAlive(cIndexAllocMap)
 }
 
-// AddPoint function as declared in wrapper/hnsw_wrapper.h:10
+// AddPoint function as declared in wrapper/hnsw_wrapper.h:13
 func AddPoint(Index *HNSW, Vec []float32, Label uint64) {
 	cIndex, cIndexAllocMap := (C.HNSW)(unsafe.Pointer(Index)), cgoAllocsUnknown
 	cVec, cVecAllocMap := (*C.float)(unsafe.Pointer((*sliceHeader)(unsafe.Pointer(&Vec)).Data)), cgoAllocsUnknown
@@ -81,7 +94,7 @@ func AddPoint(Index *HNSW, Vec []float32, Label uint64) {
 	runtime.KeepAlive(cIndexAllocMap)
 }
 
-// SearchKnn function as declared in wrapper/hnsw_wrapper.h:11
+// SearchKnn function as declared in wrapper/hnsw_wrapper.h:14
 func SearchKnn(Index *HNSW, Vec []float32, N int32, Label []uint64, Dist []float32) int32 {
 	cIndex, cIndexAllocMap := (C.HNSW)(unsafe.Pointer(Index)), cgoAllocsUnknown
 	cVec, cVecAllocMap := (*C.float)(unsafe.Pointer((*sliceHeader)(unsafe.Pointer(&Vec)).Data)), cgoAllocsUnknown
@@ -98,11 +111,122 @@ func SearchKnn(Index *HNSW, Vec []float32, N int32, Label []uint64, Dist []float
 	return __v
 }
 
-// SetEf function as declared in wrapper/hnsw_wrapper.h:12
+// SetEf function as declared in wrapper/hnsw_wrapper.h:15
 func SetEf(Index *HNSW, Ef int32) {
 	cIndex, cIndexAllocMap := (C.HNSW)(unsafe.Pointer(Index)), cgoAllocsUnknown
 	cEf, cEfAllocMap := (C.int)(Ef), cgoAllocsUnknown
 	C.setEf(cIndex, cEf)
 	runtime.KeepAlive(cEfAllocMap)
 	runtime.KeepAlive(cIndexAllocMap)
+}
+
+// ResizeIndex function as declared in wrapper/hnsw_wrapper.h:16
+func ResizeIndex(Index *HNSW, New_max_elements uint64) {
+	cIndex, cIndexAllocMap := (C.HNSW)(unsafe.Pointer(Index)), cgoAllocsUnknown
+	cNew_max_elements, cNew_max_elementsAllocMap := (C.ulonglong)(New_max_elements), cgoAllocsUnknown
+	C.resizeIndex(cIndex, cNew_max_elements)
+	runtime.KeepAlive(cNew_max_elementsAllocMap)
+	runtime.KeepAlive(cIndexAllocMap)
+}
+
+// GetCurrentElementCount function as declared in wrapper/hnsw_wrapper.h:19
+func GetCurrentElementCount(Index *HNSW) uint64 {
+	cIndex, cIndexAllocMap := (C.HNSW)(unsafe.Pointer(Index)), cgoAllocsUnknown
+	__ret := C.getCurrentElementCount(cIndex)
+	runtime.KeepAlive(cIndexAllocMap)
+	__v := (uint64)(__ret)
+	return __v
+}
+
+// GetMaxElements function as declared in wrapper/hnsw_wrapper.h:20
+func GetMaxElements(Index *HNSW) uint64 {
+	cIndex, cIndexAllocMap := (C.HNSW)(unsafe.Pointer(Index)), cgoAllocsUnknown
+	__ret := C.getMaxElements(cIndex)
+	runtime.KeepAlive(cIndexAllocMap)
+	__v := (uint64)(__ret)
+	return __v
+}
+
+// GetDeletedCount function as declared in wrapper/hnsw_wrapper.h:21
+func GetDeletedCount(Index *HNSW) uint64 {
+	cIndex, cIndexAllocMap := (C.HNSW)(unsafe.Pointer(Index)), cgoAllocsUnknown
+	__ret := C.getDeletedCount(cIndex)
+	runtime.KeepAlive(cIndexAllocMap)
+	__v := (uint64)(__ret)
+	return __v
+}
+
+// MarkDeleted function as declared in wrapper/hnsw_wrapper.h:24
+func MarkDeleted(Index *HNSW, Label uint64) {
+	cIndex, cIndexAllocMap := (C.HNSW)(unsafe.Pointer(Index)), cgoAllocsUnknown
+	cLabel, cLabelAllocMap := (C.ulonglong)(Label), cgoAllocsUnknown
+	C.markDeleted(cIndex, cLabel)
+	runtime.KeepAlive(cLabelAllocMap)
+	runtime.KeepAlive(cIndexAllocMap)
+}
+
+// UnmarkDeleted function as declared in wrapper/hnsw_wrapper.h:25
+func UnmarkDeleted(Index *HNSW, Label uint64) {
+	cIndex, cIndexAllocMap := (C.HNSW)(unsafe.Pointer(Index)), cgoAllocsUnknown
+	cLabel, cLabelAllocMap := (C.ulonglong)(Label), cgoAllocsUnknown
+	C.unmarkDeleted(cIndex, cLabel)
+	runtime.KeepAlive(cLabelAllocMap)
+	runtime.KeepAlive(cIndexAllocMap)
+}
+
+// AddPointSafe function as declared in wrapper/hnsw_wrapper.h:28
+func AddPointSafe(Index *HNSW, Vec []float32, Label uint64) int32 {
+	cIndex, cIndexAllocMap := (C.HNSW)(unsafe.Pointer(Index)), cgoAllocsUnknown
+	cVec, cVecAllocMap := (*C.float)(unsafe.Pointer((*sliceHeader)(unsafe.Pointer(&Vec)).Data)), cgoAllocsUnknown
+	cLabel, cLabelAllocMap := (C.ulonglong)(Label), cgoAllocsUnknown
+	__ret := C.addPointSafe(cIndex, cVec, cLabel)
+	runtime.KeepAlive(cLabelAllocMap)
+	runtime.KeepAlive(cVecAllocMap)
+	runtime.KeepAlive(cIndexAllocMap)
+	__v := (int32)(__ret)
+	return __v
+}
+
+// ResizeIndexSafe function as declared in wrapper/hnsw_wrapper.h:29
+func ResizeIndexSafe(Index *HNSW, New_max_elements uint64) int32 {
+	cIndex, cIndexAllocMap := (C.HNSW)(unsafe.Pointer(Index)), cgoAllocsUnknown
+	cNew_max_elements, cNew_max_elementsAllocMap := (C.ulonglong)(New_max_elements), cgoAllocsUnknown
+	__ret := C.resizeIndexSafe(cIndex, cNew_max_elements)
+	runtime.KeepAlive(cNew_max_elementsAllocMap)
+	runtime.KeepAlive(cIndexAllocMap)
+	__v := (int32)(__ret)
+	return __v
+}
+
+// SaveIndexSafe function as declared in wrapper/hnsw_wrapper.h:30
+func SaveIndexSafe(Index *HNSW, Location []byte) int32 {
+	cIndex, cIndexAllocMap := (C.HNSW)(unsafe.Pointer(Index)), cgoAllocsUnknown
+	cLocation, cLocationAllocMap := (*C.char)(unsafe.Pointer((*sliceHeader)(unsafe.Pointer(&Location)).Data)), cgoAllocsUnknown
+	__ret := C.saveIndexSafe(cIndex, cLocation)
+	runtime.KeepAlive(cLocationAllocMap)
+	runtime.KeepAlive(cIndexAllocMap)
+	__v := (int32)(__ret)
+	return __v
+}
+
+// MarkDeletedSafe function as declared in wrapper/hnsw_wrapper.h:31
+func MarkDeletedSafe(Index *HNSW, Label uint64) int32 {
+	cIndex, cIndexAllocMap := (C.HNSW)(unsafe.Pointer(Index)), cgoAllocsUnknown
+	cLabel, cLabelAllocMap := (C.ulonglong)(Label), cgoAllocsUnknown
+	__ret := C.markDeletedSafe(cIndex, cLabel)
+	runtime.KeepAlive(cLabelAllocMap)
+	runtime.KeepAlive(cIndexAllocMap)
+	__v := (int32)(__ret)
+	return __v
+}
+
+// UnmarkDeletedSafe function as declared in wrapper/hnsw_wrapper.h:32
+func UnmarkDeletedSafe(Index *HNSW, Label uint64) int32 {
+	cIndex, cIndexAllocMap := (C.HNSW)(unsafe.Pointer(Index)), cgoAllocsUnknown
+	cLabel, cLabelAllocMap := (C.ulonglong)(Label), cgoAllocsUnknown
+	__ret := C.unmarkDeletedSafe(cIndex, cLabel)
+	runtime.KeepAlive(cLabelAllocMap)
+	runtime.KeepAlive(cIndexAllocMap)
+	__v := (int32)(__ret)
+	return __v
 }
