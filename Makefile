@@ -6,13 +6,7 @@ UNAME_M := $(shell uname -m)
 PLATFORM ?= $(shell echo $(UNAME_S) | tr '[:upper:]' '[:lower:]')
 ARCH ?= $(shell echo $(UNAME_M) | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
 
-# Set compiler based on platform
-ifeq ($(PLATFORM),linux)
-    CXX := g++
-endif
-ifeq ($(PLATFORM),darwin)
-    CXX := clang++
-endif
+CXX := clang++
 
 # Build configuration
 PLATFORM_DIR := $(PLATFORM)_$(ARCH)

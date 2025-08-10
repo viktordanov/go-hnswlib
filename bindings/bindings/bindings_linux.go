@@ -8,8 +8,9 @@ package bindings
 
 /*
 #cgo CFLAGS: -I${SRCDIR}/../.. -I${SRCDIR}/../../hnswlib
-#cgo linux,amd64 LDFLAGS: ${SRCDIR}/../../build/linux_amd64/libhnsw_wrapper.a -lstdc++ -lm
-#cgo linux,arm64 LDFLAGS: ${SRCDIR}/../../build/linux_arm64/libhnsw_wrapper.a -lstdc++ -lm
+#cgo linux LDFLAGS: -lm
+#cgo linux,amd64 LDFLAGS: ${SRCDIR}/../../build/linux_amd64/libhnsw_wrapper.a -lstdc++
+#cgo linux,arm64 LDFLAGS: ${SRCDIR}/../../build/linux_arm64/libhnsw_wrapper.a -lstdc++
 #include "wrapper/hnsw_wrapper.h"
 #include <stdlib.h>
 #include "cgo_helpers.h"
