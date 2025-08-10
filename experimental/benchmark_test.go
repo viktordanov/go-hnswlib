@@ -1,10 +1,13 @@
-package main
+package experimental
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
+	"github.com/shubhang93/tablewr"
+	"github.com/viktordanov/go-hnswlib/experimental/benchmark"
 	"github.com/viktordanov/go-hnswlib/hnsw"
 )
 
@@ -17,8 +20,8 @@ func BenchmarkHNSWCosine(b *testing.B) {
 		for _, size := range datasetSizes {
 			b.Run(fmt.Sprintf("HNSW_dim%d_size%d", dim, size), func(b *testing.B) {
 				// Generate test data
-				vectors := generateRandomVectors(size, dim, 42)
-				queries := generateRandomVectors(100, dim, 123) // 100 query vectors
+				vectors := benchmark.GenerateRandomVectors(size, dim, 42)
+				queries := benchmark.GenerateRandomVectors(100, dim, 123) // 100 query vectors
 
 				// Setup HNSW index with better parameters for recall
 				index := hnsw.NewCosine(dim, size*2, 32, 400, 42)
@@ -54,11 +57,11 @@ func BenchmarkNaiveCosine(b *testing.B) {
 		for _, size := range datasetSizes {
 			b.Run(fmt.Sprintf("Naive_dim%d_size%d", dim, size), func(b *testing.B) {
 				// Generate test data
-				vectors := generateRandomVectors(size, dim, 42)
-				queries := generateRandomVectors(100, dim, 123) // 100 query vectors
+				vectors := benchmark.GenerateRandomVectors(size, dim, 42)
+				queries := benchmark.GenerateRandomVectors(100, dim, 123) // 100 query vectors
 
 				// Setup naive implementation
-				naive := NewNaiveCosineSimilarity()
+				naive := benchmark.NewNaiveCosineSimilarity()
 
 				// Add vectors to naive implementation
 				for i, vec := range vectors {
@@ -85,14 +88,14 @@ func TestCosineSimilarityAccuracy(t *testing.T) {
 	)
 
 	// Generate test data
-	vectors := generateRandomVectors(size, dim, 42)
-	query := generateRandomVectors(1, dim, 123)[0]
+	vectors := benchmark.GenerateRandomVectors(size, dim, 42)
+	query := benchmark.GenerateRandomVectors(1, dim, 123)[0]
 
 	// Setup both implementations
 	index := hnsw.NewCosine(dim, size*2, 32, 400, 42)
 	defer index.Close()
 
-	naive := NewNaiveCosineSimilarity()
+	naive := benchmark.NewNaiveCosineSimilarity()
 
 	// Add same vectors to both
 	for i, vec := range vectors {
@@ -151,8 +154,8 @@ func TestPerformanceComparison(t *testing.T) {
 	)
 
 	// Generate test data
-	vectors := generateRandomVectors(size, dim, 42)
-	queryVectors := generateRandomVectors(queries, dim, 123)
+	vectors := benchmark.GenerateRandomVectors(size, dim, 42)
+	queryVectors := benchmark.GenerateRandomVectors(queries, dim, 123)
 
 	// Setup HNSW
 	index := hnsw.NewCosine(dim, size*2, 32, 400, 42)
@@ -168,7 +171,7 @@ func TestPerformanceComparison(t *testing.T) {
 	index.SetEf(100)
 
 	// Setup Naive
-	naive := NewNaiveCosineSimilarity()
+	naive := benchmark.NewNaiveCosineSimilarity()
 	for i, vec := range vectors {
 		naive.Add(vec, uint64(i))
 	}
@@ -189,10 +192,17 @@ func TestPerformanceComparison(t *testing.T) {
 
 	speedup := float64(naiveTime) / float64(hnswTime)
 
-	t.Logf("Performance Comparison (%d vectors, %d queries):", size, queries)
-	t.Logf("HNSW time:  %v", hnswTime)
-	t.Logf("Naive time: %v", naiveTime)
-	t.Logf("Speedup:    %.1fx", speedup)
+	fmt.Printf("Performance Comparison (%d vectors, %d queries):\n", size, queries)
+	wr := tablewr.New(os.Stdout, 0, tablewr.WithSep())
+	data := [][]string{
+		{"Method", "Time", "Speedup"},
+		{"HNSW", hnswTime.String(), "1.0x"},
+		{"Naive", naiveTime.String(), fmt.Sprintf("%.1fx", speedup)},
+	}
+
+	if err := wr.Write(data); err != nil {
+		t.Fatalf("Failed to write table: %v", err)
+	}
 
 	if speedup < 2.0 {
 		t.Logf("Warning: Expected speedup > 2x, got %.1fx", speedup)

@@ -1,4 +1,4 @@
-package main
+package experimental
 
 import (
 	"fmt"
@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/shubhang93/tablewr"
+	"github.com/viktordanov/go-hnswlib/experimental/benchmark"
 	"github.com/viktordanov/go-hnswlib/hnsw"
 )
 
@@ -27,18 +29,17 @@ var testConfigs = []struct {
 func TestIndexBuildTime(t *testing.T) {
 	fmt.Println("HNSW Index Build Time Benchmark")
 	fmt.Println("===============================")
-	fmt.Printf("%-30s | %-12s | %-12s | %-10s\n", "Configuration", "Avg Build", "Per Vector", "Rate (vec/s)")
-	fmt.Println(fmt.Sprintf("%s|%s|%s|%s",
-		"------------------------------",
-		"------------",
-		"------------",
-		"----------"))
+
+	wr := tablewr.New(os.Stdout, 0, tablewr.WithSep())
+	data := [][]string{
+		{"Configuration", "Avg Build", "Per Vector", "Rate (vec/s)"},
+	}
 
 	for _, config := range testConfigs {
 		var totalBuildTime time.Duration
 
 		for sample := 0; sample < config.samples; sample++ {
-			vectors := generateRandomVectors(config.size, config.dimensions, int64(42+sample))
+			vectors := benchmark.GenerateRandomVectors(config.size, config.dimensions, int64(42+sample))
 
 			start := time.Now()
 			index := hnsw.NewCosine(config.dimensions, config.size*2, 32, 400, 42)
@@ -58,20 +59,28 @@ func TestIndexBuildTime(t *testing.T) {
 		perVectorTime := avgBuildTime / time.Duration(config.size)
 		vectorsPerSec := float64(config.size) / avgBuildTime.Seconds()
 
-		fmt.Printf("%-30s | %12v | %12v | %10.0f\n",
-			config.name, avgBuildTime, perVectorTime, vectorsPerSec)
+		row := []string{
+			config.name,
+			avgBuildTime.String(),
+			perVectorTime.String(),
+			fmt.Sprintf("%.0f", vectorsPerSec),
+		}
+		data = append(data, row)
+	}
+
+	if err := wr.Write(data); err != nil {
+		t.Fatalf("Failed to write table: %v", err)
 	}
 }
 
 func TestIndexSaveTime(t *testing.T) {
 	fmt.Println("\nHNSW Index Save Time Benchmark")
 	fmt.Println("==============================")
-	fmt.Printf("%-30s | %-12s | %-12s | %-12s\n", "Configuration", "Save Time", "File Size", "Save Rate")
-	fmt.Println(fmt.Sprintf("%s|%s|%s|%s",
-		"------------------------------",
-		"------------",
-		"------------",
-		"------------"))
+
+	wr := tablewr.New(os.Stdout, 0, tablewr.WithSep())
+	data := [][]string{
+		{"Configuration", "Save Time", "File Size", "Save Rate"},
+	}
 
 	tempDir, err := os.MkdirTemp("", "hnsw_test")
 	if err != nil {
@@ -84,7 +93,7 @@ func TestIndexSaveTime(t *testing.T) {
 		var totalFileSize int64
 
 		for sample := 0; sample < config.samples; sample++ {
-			vectors := generateRandomVectors(config.size, config.dimensions, int64(42+sample))
+			vectors := benchmark.GenerateRandomVectors(config.size, config.dimensions, int64(42+sample))
 
 			// Build index
 			index := hnsw.NewCosine(config.dimensions, config.size*2, 32, 400, 42)
@@ -120,20 +129,28 @@ func TestIndexSaveTime(t *testing.T) {
 		avgFileSize := totalFileSize / int64(config.samples)
 		saveRateMBps := float64(avgFileSize) / (1024 * 1024) / avgSaveTime.Seconds()
 
-		fmt.Printf("%-30s | %12v | %12s | %10.1f MB/s\n",
-			config.name, avgSaveTime, formatBytes(avgFileSize), saveRateMBps)
+		row := []string{
+			config.name,
+			avgSaveTime.String(),
+			formatBytes(avgFileSize),
+			fmt.Sprintf("%.1f MB/s", saveRateMBps),
+		}
+		data = append(data, row)
+	}
+
+	if err := wr.Write(data); err != nil {
+		t.Fatalf("Failed to write table: %v", err)
 	}
 }
 
 func TestIndexLoadTime(t *testing.T) {
 	fmt.Println("\nHNSW Index Load Time Benchmark")
 	fmt.Println("==============================")
-	fmt.Printf("%-30s | %-12s | %-12s | %-12s\n", "Configuration", "Load Time", "File Size", "Load Rate")
-	fmt.Println(fmt.Sprintf("%s|%s|%s|%s",
-		"------------------------------",
-		"------------",
-		"------------",
-		"------------"))
+
+	wr := tablewr.New(os.Stdout, 0, tablewr.WithSep())
+	data := [][]string{
+		{"Configuration", "Load Time", "File Size", "Load Rate"},
+	}
 
 	tempDir, err := os.MkdirTemp("", "hnsw_test")
 	if err != nil {
@@ -146,7 +163,7 @@ func TestIndexLoadTime(t *testing.T) {
 		var totalFileSize int64
 
 		for sample := 0; sample < config.samples; sample++ {
-			vectors := generateRandomVectors(config.size, config.dimensions, int64(42+sample))
+			vectors := benchmark.GenerateRandomVectors(config.size, config.dimensions, int64(42+sample))
 
 			// Build and save index
 			index := hnsw.NewCosine(config.dimensions, config.size*2, 32, 400, 42)
@@ -188,22 +205,28 @@ func TestIndexLoadTime(t *testing.T) {
 		avgFileSize := totalFileSize / int64(config.samples)
 		loadRateMBps := float64(avgFileSize) / (1024 * 1024) / avgLoadTime.Seconds()
 
-		fmt.Printf("%-30s | %12v | %12s | %10.1f MB/s\n",
-			config.name, avgLoadTime, formatBytes(avgFileSize), loadRateMBps)
+		row := []string{
+			config.name,
+			avgLoadTime.String(),
+			formatBytes(avgFileSize),
+			fmt.Sprintf("%.1f MB/s", loadRateMBps),
+		}
+		data = append(data, row)
+	}
+
+	if err := wr.Write(data); err != nil {
+		t.Fatalf("Failed to write table: %v", err)
 	}
 }
 
 func TestIndexSizeAnalysis(t *testing.T) {
 	fmt.Println("\nHNSW Index Size Analysis")
 	fmt.Println("========================")
-	fmt.Printf("%-30s | %-12s | %-12s | %-12s | %-8s\n",
-		"Configuration", "Raw Data", "Index Size", "Overhead", "Ratio")
-	fmt.Println(fmt.Sprintf("%s|%s|%s|%s|%s",
-		"------------------------------",
-		"------------",
-		"------------",
-		"------------",
-		"--------"))
+
+	wr := tablewr.New(os.Stdout, 0, tablewr.WithSep())
+	data := [][]string{
+		{"Configuration", "Raw Data", "Index Size", "Overhead", "Ratio"},
+	}
 
 	tempDir, err := os.MkdirTemp("", "hnsw_test")
 	if err != nil {
@@ -212,7 +235,7 @@ func TestIndexSizeAnalysis(t *testing.T) {
 	defer os.RemoveAll(tempDir)
 
 	for _, config := range testConfigs {
-		vectors := generateRandomVectors(config.size, config.dimensions, 42)
+		vectors := benchmark.GenerateRandomVectors(config.size, config.dimensions, 42)
 
 		// Calculate raw data size
 		rawDataSize := int64(config.size * config.dimensions * 4) // 4 bytes per float32
@@ -243,14 +266,20 @@ func TestIndexSizeAnalysis(t *testing.T) {
 		overhead := indexSize - rawDataSize
 		ratio := float64(indexSize) / float64(rawDataSize)
 
-		fmt.Printf("%-30s | %12s | %12s | %12s | %7.1fx\n",
+		row := []string{
 			config.name,
 			formatBytes(rawDataSize),
 			formatBytes(indexSize),
 			formatBytes(overhead),
-			ratio)
+			fmt.Sprintf("%.1fx", ratio),
+		}
+		data = append(data, row)
 
 		os.Remove(filename)
+	}
+
+	if err := wr.Write(data); err != nil {
+		t.Fatalf("Failed to write table: %v", err)
 	}
 }
 
@@ -267,7 +296,7 @@ func BenchmarkIndexConstruction(b *testing.B) {
 
 	for _, config := range configs {
 		b.Run(config.name, func(b *testing.B) {
-			vectors := generateRandomVectors(config.size, config.dimensions, 42)
+			vectors := benchmark.GenerateRandomVectors(config.size, config.dimensions, 42)
 
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
@@ -285,7 +314,7 @@ func BenchmarkIndexConstruction(b *testing.B) {
 	}
 }
 
-// generateRandomVectors is defined in comprehensive_benchmark.go
+// benchmark.GenerateRandomVectors is defined in comprehensive_benchmark.go
 
 func formatBytes(bytes int64) string {
 	if bytes < 1024 {

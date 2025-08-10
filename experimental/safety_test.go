@@ -1,13 +1,16 @@
-package main
+package experimental
 
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"runtime"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/shubhang93/tablewr"
+	"github.com/viktordanov/go-hnswlib/experimental/parallel"
 	"github.com/viktordanov/go-hnswlib/hnsw"
 )
 
@@ -22,7 +25,7 @@ func TestParallelSafety(t *testing.T) {
 
 	// Add vectors with predictable patterns
 	const numVectors = 10000
-	vectors := make([]VectorData, numVectors)
+	vectors := make([]parallel.VectorData, numVectors)
 	for i := 0; i < numVectors; i++ {
 		vector := make([]float32, 64)
 		// Create distinctive vectors for cosine similarity
@@ -31,13 +34,13 @@ func TestParallelSafety(t *testing.T) {
 			// Create unique patterns: use position and vector index to create distinct vectors
 			vector[j] = float32(i+j*100) + float32(j)*0.1
 		}
-		vectors[i] = VectorData{
+		vectors[i] = parallel.VectorData{
 			Vector: vector,
 			Label:  uint64(i),
 		}
 	}
 
-	err := BatchAdd(index, vectors, nil)
+	err := parallel.BatchAdd(index, vectors, nil)
 	if err != nil {
 		t.Fatalf("Failed to add vectors: %v", err)
 	}
@@ -88,7 +91,7 @@ func TestParallelSafety(t *testing.T) {
 
 	// Test 2: Parallel search
 	fmt.Printf("\n📊 Test 2: Parallel Search\n")
-	parallelResults, err := ParallelSearch(index, queries, 5, nil) // k=5
+	parallelResults, err := parallel.ParallelSearch(index, queries, 5, nil) // k=5
 	if err != nil {
 		t.Fatalf("Parallel search failed: %v", err)
 	}
@@ -132,8 +135,8 @@ func TestParallelSafety(t *testing.T) {
 
 	// Test 5: High worker count test
 	fmt.Printf("\n📊 Test 5: High Worker Count Test\n")
-	opts := &ParallelSearchOptions{MaxWorkers: runtime.GOMAXPROCS(0) * 4}
-	stressResults, err := ParallelSearch(index, queries, 5, opts)
+	opts := &parallel.ParallelSearchOptions{MaxWorkers: runtime.GOMAXPROCS(0) * 4}
+	stressResults, err := parallel.ParallelSearch(index, queries, 5, opts)
 	if err != nil {
 		t.Fatalf("Stress test failed: %v", err)
 	}
@@ -158,8 +161,8 @@ func TestParallelSafety(t *testing.T) {
 		sameQuerySlice[i] = sameQuery
 	}
 
-	opts = &ParallelSearchOptions{MaxWorkers: runtime.GOMAXPROCS(0) * 3}
-	collisionResults, err := ParallelSearch(index, sameQuerySlice, 10, opts)
+	opts = &parallel.ParallelSearchOptions{MaxWorkers: runtime.GOMAXPROCS(0) * 3}
+	collisionResults, err := parallel.ParallelSearch(index, sameQuerySlice, 10, opts)
 	if err != nil {
 		t.Fatalf("Collision test failed: %v", err)
 	}
@@ -191,8 +194,29 @@ func TestParallelSafety(t *testing.T) {
 
 	// Final verification
 	fmt.Printf("\n🎯 Final Results:\n")
+
+	wr := tablewr.New(os.Stdout, 0, tablewr.WithSep())
+	data := [][]string{
+		{"Test", "Result", "Score", "Status"},
+		{"Sequential Accuracy", fmt.Sprintf("%d/%d", sequentialCorrect, numQueries), fmt.Sprintf("%.1f%%", float64(sequentialCorrect)/float64(numQueries)*100), "✅"},
+		{"Parallel Accuracy", fmt.Sprintf("%d/%d", parallelCorrect, numQueries), fmt.Sprintf("%.1f%%", float64(parallelCorrect)/float64(numQueries)*100), "✅"},
+		{"Identical Results", fmt.Sprintf("%d/%d", identical, numQueries), fmt.Sprintf("%.1f%%", float64(identical)/float64(numQueries)*100), "✅"},
+		{"Order Preservation", fmt.Sprintf("%d/%d", orderCorrect, numQueries), fmt.Sprintf("%.1f%%", float64(orderCorrect)/float64(numQueries)*100), func() string {
+			if orderCorrect == numQueries {
+				return "✅"
+			} else {
+				return "❌"
+			}
+		}()},
+		{"High Worker Test", fmt.Sprintf("%d/%d", stressCorrect, numQueries), fmt.Sprintf("%.1f%%", float64(stressCorrect)/float64(numQueries)*100), "✅"},
+	}
+
+	if err := wr.Write(data); err != nil {
+		t.Fatalf("Failed to write results table: %v", err)
+	}
+
 	if abs(parallelCorrect-sequentialCorrect) <= 2 && identical >= numQueries*80/100 {
-		fmt.Printf("   ✅ PASS: Parallel search is safe and accurate\n")
+		fmt.Printf("\n✅ PASS: Parallel search is safe and accurate\n")
 	} else {
 		t.Errorf("❌ FAIL: Data integrity issues detected")
 		t.Errorf("   Sequential correct: %d, Parallel correct: %d, Identical: %d",
@@ -200,7 +224,7 @@ func TestParallelSafety(t *testing.T) {
 	}
 
 	if orderCorrect == numQueries {
-		fmt.Printf("   ✅ PASS: Query order preserved correctly\n")
+		fmt.Printf("✅ PASS: Query order preserved correctly\n")
 	} else {
 		t.Errorf("❌ FAIL: Query order not preserved: %d/%d", orderCorrect, numQueries)
 	}
@@ -215,16 +239,16 @@ func TestConcurrentAccess(t *testing.T) {
 	defer index.Close()
 
 	// Add test data
-	vectors := make([]VectorData, 5000)
+	vectors := make([]parallel.VectorData, 5000)
 	for i := 0; i < 5000; i++ {
 		vector := make([]float32, 128)
 		for j := 0; j < 128; j++ {
 			vector[j] = rand.Float32()
 		}
-		vectors[i] = VectorData{Vector: vector, Label: uint64(i)}
+		vectors[i] = parallel.VectorData{Vector: vector, Label: uint64(i)}
 	}
 
-	err := BatchAdd(index, vectors, nil)
+	err := parallel.BatchAdd(index, vectors, nil)
 	if err != nil {
 		t.Fatalf("Failed to add vectors: %v", err)
 	}
@@ -338,8 +362,8 @@ func TestConcurrentAccess(t *testing.T) {
 		batchQueries[i] = query
 	}
 
-	opts := &ParallelSearchOptions{MaxWorkers: runtime.GOMAXPROCS(0) * 5}
-	batchResults, err := ParallelSearch(index, batchQueries, 5, opts)
+	opts := &parallel.ParallelSearchOptions{MaxWorkers: runtime.GOMAXPROCS(0) * 5}
+	batchResults, err := parallel.ParallelSearch(index, batchQueries, 5, opts)
 	if err != nil {
 		t.Fatalf("Large batch search failed: %v", err)
 	}
@@ -376,16 +400,16 @@ func TestLargeScaleStressTest(t *testing.T) {
 
 	// Add large dataset
 	fmt.Printf("Adding 20,000 high-dimensional vectors...\n")
-	vectors := make([]VectorData, 20000)
+	vectors := make([]parallel.VectorData, 20000)
 	for i := 0; i < 20000; i++ {
 		vector := make([]float32, 256)
 		for j := 0; j < 256; j++ {
 			vector[j] = rand.Float32() * 100.0
 		}
-		vectors[i] = VectorData{Vector: vector, Label: uint64(i)}
+		vectors[i] = parallel.VectorData{Vector: vector, Label: uint64(i)}
 	}
 
-	err := BatchAdd(index, vectors, &BatchAddOptions{MaxWorkers: runtime.GOMAXPROCS(0) * 2})
+	err := parallel.BatchAdd(index, vectors, &parallel.BatchAddOptions{MaxWorkers: runtime.GOMAXPROCS(0) * 2})
 	if err != nil {
 		t.Fatalf("Failed to add large dataset: %v", err)
 	}
@@ -401,9 +425,9 @@ func TestLargeScaleStressTest(t *testing.T) {
 		identicalQueries[i] = query
 	}
 
-	opts := &ParallelSearchOptions{MaxWorkers: runtime.GOMAXPROCS(0) * 10} // 10x workers!
+	opts := &parallel.ParallelSearchOptions{MaxWorkers: runtime.GOMAXPROCS(0) * 10} // 10x workers!
 	start := time.Now()
-	nuclearResults, err := ParallelSearch(index, identicalQueries, 20, opts)
+	nuclearResults, err := parallel.ParallelSearch(index, identicalQueries, 20, opts)
 	if err != nil {
 		t.Fatalf("Nuclear identical query test failed: %v", err)
 	}
@@ -428,9 +452,12 @@ func TestLargeScaleStressTest(t *testing.T) {
 		}
 	}
 
+	identicalElapsed := elapsed
+	identicalQPS := float64(2000) / elapsed.Seconds()
+
 	if allIdentical {
 		fmt.Printf("   ✅ PASS: 2000 identical queries in %v (%.0f QPS)\n",
-			elapsed, float64(2000)/elapsed.Seconds())
+			elapsed, identicalQPS)
 	} else {
 		t.Errorf("   ❌ FAIL: Identical queries returned different results")
 	}
@@ -446,17 +473,20 @@ func TestLargeScaleStressTest(t *testing.T) {
 		loadQueries[i] = query
 	}
 
-	loadOpts := &ParallelSearchOptions{MaxWorkers: runtime.GOMAXPROCS(0) * 15}
+	loadOpts := &parallel.ParallelSearchOptions{MaxWorkers: runtime.GOMAXPROCS(0) * 15}
 	start = time.Now()
-	loadResults, err := ParallelSearch(index, loadQueries, 15, loadOpts)
+	loadResults, err := parallel.ParallelSearch(index, loadQueries, 15, loadOpts)
 	if err != nil {
 		t.Fatalf("High load test failed: %v", err)
 	}
 	elapsed = time.Since(start)
 
+	loadElapsed := elapsed
+	loadQPS := float64(5000) / elapsed.Seconds()
+
 	if len(loadResults) == 5000 {
 		fmt.Printf("   ✅ PASS: 5000 queries in %v (%.0f QPS)\n",
-			elapsed, float64(5000)/elapsed.Seconds())
+			elapsed, loadQPS)
 	} else {
 		t.Errorf("   ❌ FAIL: Expected 5000 results, got %d", len(loadResults))
 	}
@@ -481,8 +511,8 @@ func TestLargeScaleStressTest(t *testing.T) {
 		rapidWG.Add(1)
 		go func(batchNum int) {
 			defer rapidWG.Done()
-			_, err := ParallelSearch(index, smallQuery, 5,
-				&ParallelSearchOptions{MaxWorkers: runtime.GOMAXPROCS(0)})
+			_, err := parallel.ParallelSearch(index, smallQuery, 5,
+				&parallel.ParallelSearchOptions{MaxWorkers: runtime.GOMAXPROCS(0)})
 			if err != nil {
 				select {
 				case rapidErrors <- err:
@@ -504,11 +534,43 @@ func TestLargeScaleStressTest(t *testing.T) {
 		}
 	}
 
+	rapidElapsed := elapsed
+
 	if errorCount == 0 {
 		fmt.Printf("   ✅ PASS: 100 rapid batches completed in %v\n", elapsed)
 	} else {
 		t.Errorf("   ❌ FAIL: %d errors occurred", errorCount)
 	}
 
-	fmt.Printf("\nLarge Scale Test Summary: System handled high load successfully\n")
+	fmt.Printf("\nLarge Scale Test Summary:\n")
+	wr2 := tablewr.New(os.Stdout, 0, tablewr.WithSep())
+	summaryData := [][]string{
+		{"Test", "Queries", "Time", "QPS", "Status"},
+		{"Identical Queries", "2000", identicalElapsed.String(), fmt.Sprintf("%.0f", identicalQPS), func() string {
+			if allIdentical {
+				return "✅ PASS"
+			} else {
+				return "❌ FAIL"
+			}
+		}()},
+		{"Different Queries", "5000", loadElapsed.String(), fmt.Sprintf("%.0f", loadQPS), func() string {
+			if len(loadResults) == 5000 {
+				return "✅ PASS"
+			} else {
+				return "❌ FAIL"
+			}
+		}()},
+		{"Rapid Batches", "100", rapidElapsed.String(), "-", func() string {
+			if errorCount == 0 {
+				return "✅ PASS"
+			} else {
+				return "❌ FAIL"
+			}
+		}()},
+	}
+
+	if err := wr2.Write(summaryData); err != nil {
+		t.Fatalf("Failed to write summary table: %v", err)
+	}
+	fmt.Printf("System handled high load successfully\n")
 }
