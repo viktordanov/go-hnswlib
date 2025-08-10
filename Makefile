@@ -10,7 +10,16 @@ CXX := clang++
 
 # Build configuration
 PLATFORM_DIR := $(PLATFORM)_$(ARCH)
-CXXFLAGS := -O3 -std=c++11 -fPIC
+# Build configuration with architecture-specific optimizations
+ifeq ($(ARCH),arm64)
+    # ARM64 (Apple Silicon) - optimize for ARM but no SIMD (hnswlib doesn't have NEON implementations)
+    CXXFLAGS := -O3 -std=c++11 -fPIC -march=native -mtune=native -DNO_MANUAL_VECTORIZATION
+else
+    # x86_64 - use SSE/AVX SIMD optimizations
+    CXXFLAGS := -O3 -std=c++11 -fPIC -march=native -msse4.1 -mavx -mavx2
+    # Uncomment for AVX-512 if your target supports it:
+    # CXXFLAGS += -mavx512f
+endif
 INCLUDES := -Ihnswlib -I.
 SRC := wrapper/hnsw_wrapper.cpp
 LIB := build/$(PLATFORM_DIR)/libhnsw_wrapper.a
