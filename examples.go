@@ -300,4 +300,5 @@ func exampleDeleteManagement() {
 	}
 
 	fmt.Println("\n✅ All examples completed successfully!")
+	fmt.Println("\n💡 For experimental parallel operations, see examples in experiments/parallel_examples.go")
 }
