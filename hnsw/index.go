@@ -3,7 +3,7 @@ package hnsw
 import (
 	"runtime"
 
-	"github.com/vikimaster2/go-hnswlib/bindings/bindings"
+	"github.com/viktordanov/go-hnswlib/bindings/bindings"
 )
 
 type Space byte

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/vikimaster2/go-hnswlib/hnsw"
+	"github.com/viktordanov/go-hnswlib/hnsw"
 )
 
 func main() {

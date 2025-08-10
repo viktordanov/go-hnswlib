@@ -1,44 +1,34 @@
-CXX := clang++
-CXXFLAGS := -O3 -std=c++11 -fPIC -Wall -Wextra
-INCLUDES := -Ihnswlib -Ihnswlib/hnswlib -I.
-SRC := hnsw_wrapper.cpp
-OBJ := build/hnsw_wrapper.o
-LIB := build/libhnsw_wrapper.a
+# Platform detection (can be overridden)
+UNAME_S := $(shell uname -s)
+UNAME_M := $(shell uname -m)
 
-.PHONY: all clean clean-all clean-objects update-submodule rebuild
+# Allow override via environment or command line
+PLATFORM ?= $(shell echo $(UNAME_S) | tr '[:upper:]' '[:lower:]')
+ARCH ?= $(shell echo $(UNAME_M) | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
+
+# Set compiler based on platform
+ifeq ($(PLATFORM),linux)
+    CXX := g++
+endif
+ifeq ($(PLATFORM),darwin)
+    CXX := clang++
+endif
+
+# Build configuration
+PLATFORM_DIR := $(PLATFORM)_$(ARCH)
+CXXFLAGS := -O3 -std=c++11 -fPIC
+INCLUDES := -Ihnswlib -I.
+SRC := wrapper/hnsw_wrapper.cpp
+LIB := build/$(PLATFORM_DIR)/libhnsw_wrapper.a
+
+.PHONY: all clean
 
 all: $(LIB)
 
-build:
-	mkdir -p build
+$(LIB): $(SRC)
+	@mkdir -p build/$(PLATFORM_DIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o build/$(PLATFORM_DIR)/hnsw_wrapper.o
+	ar rcs $@ build/$(PLATFORM_DIR)/hnsw_wrapper.o
 
-$(OBJ): $(SRC) | build
-	$(CXX) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
-
-$(LIB): $(OBJ)
-	ar rcs $@ $^
-
-# Remove only intermediate object files (keep static library)
-clean-objects:
-	rm -f build/*.o
-	@echo "✅ Removed object files (kept static library)"
-
-# Remove all build artifacts
 clean:
 	rm -rf build
-
-# Remove all generated files (build + bindings)
-clean-all: clean
-	rm -rf bindings/bindings
-	@echo "✅ Removed all generated files"
-
-# Update hnswlib submodule to latest version
-update-submodule:
-	git submodule update --remote hnswlib
-	@echo "✅ Updated hnswlib submodule to latest version"
-	@echo "🔄 Run './build.sh' to rebuild with updated hnswlib"
-
-# Complete rebuild with updated submodule
-rebuild: update-submodule clean
-	@echo "🚀 Running complete rebuild..."
-	./build.sh
