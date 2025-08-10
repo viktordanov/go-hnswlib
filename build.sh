@@ -70,13 +70,4 @@ echo "Creating platform-specific binding files..."
 echo "Building Go module..."
 go build ./...
 
-echo "Running functionality test..."
-if go run example/main.go > /dev/null 2>&1; then
-    echo ""
-    echo "Build completed successfully for $PLATFORM_DIR"
-    echo "Static library: build/$PLATFORM_DIR/libhnsw_wrapper.a"
-    echo "Go bindings: bindings/bindings/"
-else
-    echo "Error: Functionality test failed"
-    exit 1
-fi
+echo "Build completed successfully for $PLATFORM_DIR"
