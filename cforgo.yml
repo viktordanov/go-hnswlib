@@ -1,0 +1,24 @@
+---
+GENERATOR:
+  PackageName: bindings
+  PackageDescription: "Go bindings for hnswlib via a thin C wrapper"
+  Preamble: |
+    #cgo CFLAGS: -I${SRCDIR}/../.. -I${SRCDIR}/../../hnswlib -I${SRCDIR}/../../hnswlib/hnswlib
+    #cgo LDFLAGS: ${SRCDIR}/../../build/libhnsw_wrapper.a -lc++
+  Includes:
+    - hnsw_wrapper.h
+PARSER:
+  IncludePaths:
+    - ..
+  SourcesPaths:
+    - ../hnsw_wrapper.h
+TRANSLATOR:
+  ConstRules:
+    defines: expand
+  Rules:
+    global:
+      - action: accept
+        from: "^(init|load|save|free|add|search|set)"
+      - action: accept
+        from: "^HNSW"
+      - transform: export

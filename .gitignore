@@ -1,0 +1,32 @@
+# Build artifacts
+build/
+*.o
+*.a
+
+# Generated Go bindings
+bindings/bindings/
+
+# Go build cache
+.gocache/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+*.test
+coverage.out
+
+# Temporary files
+*.tmp
+*.temp
+
+# Don't ignore the hnswlib submodule directory itself, but let git handle it
+# The submodule will be managed by git submodule commands
