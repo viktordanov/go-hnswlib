@@ -54,16 +54,21 @@ func (i *Index) Close() {
 }
 
 // normalizeVector normalizes a vector to unit length
+// Creates a copy to avoid race conditions when used concurrently
 func normalizeVector(vector []float32) []float32 {
+	// Calculate norm
 	var norm float32
 	for i := 0; i < len(vector); i++ {
 		norm += vector[i] * vector[i]
 	}
 	norm = 1.0 / (float32(math.Sqrt(float64(norm))) + 1e-15)
+
+	// Create normalized copy (thread-safe)
+	normalized := make([]float32, len(vector))
 	for i := 0; i < len(vector); i++ {
-		vector[i] = vector[i] * norm
+		normalized[i] = vector[i] * norm
 	}
-	return vector
+	return normalized
 }
 func (i *Index) Add(vec []float32, label uint64) error {
 	if i == nil || i.h == nil {
