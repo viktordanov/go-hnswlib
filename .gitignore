@@ -1,5 +1,9 @@
+# Build artifacts (don't ship pre-built binaries)
+build/
+bindings/bindings/
+
 # Intermediate build files
-build/**/*.o
+**/*.o
 
 # Go build cache
 .gocache/
