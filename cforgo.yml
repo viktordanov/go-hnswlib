@@ -1,17 +1,18 @@
 ---
 GENERATOR:
-  PackageName: bindings
+  PackageName: "bindings"
   PackageDescription: "Go bindings for hnswlib via a thin C wrapper"
-  Preamble: |
-    #cgo CFLAGS: -I${SRCDIR}/../.. -I${SRCDIR}/../../hnswlib
-    #cgo LDFLAGS: ${SRCDIR}/../../build/libhnsw_wrapper.a -lc++
   Includes:
-    - wrapper/hnsw_wrapper.h
+    - hnsw_wrapper.h
+OPTIONS:
+  CPPFLAGS: "-I${SRCDIR} -I${SRCDIR}/hnswlib -std=c++17 -O2 -DHNSWLIB_NO_MANUAL_VECTORIZATION"
+  CXXFLAGS: "-std=c++17 -O2 -march=native"  
+  LDFLAGS: "-lstdc++ -static"
 PARSER:
   IncludePaths:
-    - ..
+    - .
   SourcesPaths:
-    - ../wrapper/hnsw_wrapper.h
+    - hnsw_wrapper.h
 TRANSLATOR:
   ConstRules:
     defines: expand

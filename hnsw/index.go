@@ -5,7 +5,7 @@ import (
 	"math"
 	"runtime"
 
-	"github.com/viktordanov/go-hnswlib/bindings/bindings"
+	bindings "github.com/viktordanov/go-hnswlib"
 )
 
 type Space byte
