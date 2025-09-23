@@ -1,4 +1,4 @@
 github.com/shubhang93/tablewr v0.0.0-20241221064909-53c4d24d6c41 h1:/3QepeFl+nG94E536dcbPhu04FcTh781m+EOvPo/sIk=
 github.com/shubhang93/tablewr v0.0.0-20241221064909-53c4d24d6c41/go.mod h1:mR11OiCIpkTBTuXyb8uyVDWAvO0BNvXI6VnHhIQe1yQ=
-github.com/viktordanov/go-hnswlib v1.2.0 h1:4lWKXeLxO0hAQZks4NHcaUTcVsLtHKqWW6lQu3TOY44=
-github.com/viktordanov/go-hnswlib v1.2.0/go.mod h1:i7L3HYo3wD/92E6eTBj5X8Q93iVgI4KcS5zHS2IQrSw=
+github.com/viktordanov/go-hnswlib v1.3.1 h1:2EtA4rM2455YLDkQOZdWAVXQvwfZlsji/FDe1iHVQbk=
+github.com/viktordanov/go-hnswlib v1.3.1/go.mod h1:+wDsu8dls17BG9y3Z8lZgs5f8No97/j+tFtV2RJKwY8=
