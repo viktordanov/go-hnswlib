@@ -245,7 +245,7 @@ func SaveReport(report *BenchmarkReport, outputDir string) {
 }
 
 func PrintConsoleSummary(results []BenchmarkResult, config PlatformConfig) {
-	fmt.Println("\n📊 BENCHMARK SUMMARY")
+	fmt.Println("\nBENCHMARK SUMMARY")
 	fmt.Println("====================")
 
 	totalConfigs := len(groupResultsByConfig(results))
