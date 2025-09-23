@@ -44,8 +44,7 @@ if [ -f "bindings.go" ] && ! grep -q "#cgo CPPFLAGS" bindings.go; then
 /*\
 #cgo CPPFLAGS: -I${SRCDIR} -I${SRCDIR}/hnswlib -DHNSWLIB_NO_MANUAL_VECTORIZATION\
 #cgo CXXFLAGS: -std=c++17 -O2 -march=native\
-#cgo LDFLAGS: -lstdc++\
-#cgo linux LDFLAGS: -lm -lpthread -static\
+#cgo linux LDFLAGS: -static-libgcc -static-libstdc++ -lm -lpthread -static\
 #cgo darwin LDFLAGS: -framework Foundation\
 \
 #include "hnsw_wrapper.h"\
