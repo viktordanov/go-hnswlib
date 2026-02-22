@@ -8,7 +8,8 @@ Go bindings for [hnswlib](https://github.com/nmslib/hnswlib) - fast approximate 
 go get github.com/viktordanov/go-hnswlib
 ```
 
-No C++ compilation required. Static libraries for common platforms are included.
+Uses cgo: the bundled C++ wrapper is compiled by the Go toolchain on the target machine.
+A working C++17 toolchain is required where you build.
 
 ## Usage
 
@@ -76,24 +77,25 @@ func main() {
 ```bash
 git clone https://github.com/viktordanov/go-hnswlib
 cd go-hnswlib
-./build.sh
+go build ./...
+go test ./...
 ```
 
-**Cross-compile for different platforms:**
+**Regenerate low-level bindings after C API changes:**
 ```bash
-PLATFORM=linux ARCH=amd64 make
-PLATFORM=linux ARCH=arm64 make  
-PLATFORM=darwin ARCH=amd64 make
-PLATFORM=darwin ARCH=arm64 make
+./generate_bindings.sh
+go build ./...
 ```
 
 **Project structure:**
 ```
-├── hnswlib/           # C++ headers
-├── wrapper/           # C++ wrapper 
-├── bindings/          # Generated Go bindings
-├── hnsw/              # High-level Go API
-└── build/             # Platform-specific static libraries
+├── hnswlib/           # Upstream hnswlib headers
+├── hnsw_wrapper.h     # C wrapper API
+├── hnsw_wrapper.cpp   # C++ wrapper implementation
+├── bindings.go        # Generated c-for-go bindings
+├── cgo_helpers.*      # Generated cgo helpers
+├── types.go           # Generated C type mappings
+└── hnsw/              # High-level Go API
 ```
 
 **Requirements for building:**
@@ -103,7 +105,7 @@ PLATFORM=darwin ARCH=arm64 make
 
 ## Supported Platforms
 
-Pre-built static libraries included for:
+Tested on:
 - darwin_arm64 (macOS Apple Silicon)
 - linux_amd64 (Linux x86-64)
 - linux_arm64 (Linux ARM64)

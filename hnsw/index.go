@@ -234,3 +234,193 @@ func NewIP(dim, maxElements, M, efConstruction, seed int) *Index {
 func NewCosine(dim, maxElements, M, efConstruction, seed int) *Index {
 	return New(SpaceCosine, dim, maxElements, M, efConstruction, seed)
 }
+
+// =============================================================================
+// Vector Export API - For data migration and inspection
+// =============================================================================
+
+// GetDimension returns the vector dimension of this index
+func (i *Index) GetDimension() int {
+	if i == nil || i.h == nil {
+		return 0
+	}
+	return int(bindings.GetDimension(i.h))
+}
+
+// GetVector retrieves the stored vector for a given label.
+// For cosine indices, this returns the normalized vector (not the original).
+// Returns error if label not found, is deleted, or index is closed.
+func (i *Index) GetVector(label uint64) ([]float32, error) {
+	if i == nil || i.h == nil {
+		return nil, errors.New("index is closed")
+	}
+
+	dim := i.GetDimension()
+	if dim <= 0 {
+		return nil, errors.New("invalid dimension")
+	}
+
+	vector := make([]float32, dim)
+	result := bindings.GetVectorByLabel(i.h, label, vector)
+	if result < 0 {
+		return nil, errors.New("label not found or deleted")
+	}
+
+	return vector, nil
+}
+
+// GetVectors retrieves multiple vectors by their labels.
+// Returns a map of label -> vector for all found labels.
+// Labels that are not found or deleted are omitted from the result.
+// For cosine indices, vectors are normalized.
+func (i *Index) GetVectors(labels []uint64) (map[uint64][]float32, error) {
+	if i == nil || i.h == nil {
+		return nil, errors.New("index is closed")
+	}
+
+	dim := i.GetDimension()
+	if dim <= 0 {
+		return nil, errors.New("invalid dimension")
+	}
+
+	result := make(map[uint64][]float32, len(labels))
+	for _, label := range labels {
+		vector := make([]float32, dim)
+		if bindings.GetVectorByLabel(i.h, label, vector) >= 0 {
+			result[label] = vector
+		}
+	}
+
+	return result, nil
+}
+
+// ElementInfo contains information about a single stored element
+type ElementInfo struct {
+	InternalID uint64
+	Label      uint64
+	IsDeleted  bool
+}
+
+// VectorIterator provides memory-efficient iteration over all vectors in the index.
+// The iterator is NOT thread-safe - don't modify the index while iterating.
+type VectorIterator struct {
+	index      *Index
+	currentID  uint64
+	totalCount uint64
+	dimension  int
+}
+
+// NewIterator creates an iterator for all elements in the index.
+// The iterator allows memory-efficient streaming of all vectors.
+// WARNING: The iterator is NOT thread-safe - don't modify the index while iterating.
+func (i *Index) NewIterator() (*VectorIterator, error) {
+	if i == nil || i.h == nil {
+		return nil, errors.New("index is closed")
+	}
+
+	return &VectorIterator{
+		index:      i,
+		currentID:  0,
+		totalCount: uint64(i.GetCurrentCount()),
+		dimension:  i.GetDimension(),
+	}, nil
+}
+
+// Next returns true if there are more elements to iterate.
+func (it *VectorIterator) Next() bool {
+	return it.currentID < it.totalCount
+}
+
+// Element returns info about the current element (without vector data).
+// Call Vector() to get the actual vector data.
+func (it *VectorIterator) Element() (ElementInfo, error) {
+	if it.index == nil || it.index.h == nil {
+		return ElementInfo{}, errors.New("index is closed")
+	}
+
+	label := make([]uint64, 1)
+	isDeleted := make([]int32, 1)
+
+	result := bindings.GetElementByInternalId(it.index.h, it.currentID, label, isDeleted)
+	if result < 0 {
+		return ElementInfo{}, errors.New("element not found")
+	}
+
+	return ElementInfo{
+		InternalID: it.currentID,
+		Label:      label[0],
+		IsDeleted:  isDeleted[0] != 0,
+	}, nil
+}
+
+// Vector returns the vector data for the current element.
+// For cosine indices, returns the normalized vector.
+func (it *VectorIterator) Vector() ([]float32, error) {
+	if it.index == nil || it.index.h == nil {
+		return nil, errors.New("index is closed")
+	}
+
+	vector := make([]float32, it.dimension)
+	result := bindings.GetVectorByInternalId(it.index.h, it.currentID, vector)
+	if result < 0 {
+		return nil, errors.New("failed to get vector")
+	}
+	return vector, nil
+}
+
+// Advance moves to the next element. Call after processing current element.
+func (it *VectorIterator) Advance() {
+	it.currentID++
+}
+
+// Progress returns the current progress as (current, total).
+func (it *VectorIterator) Progress() (current, total uint64) {
+	return it.currentID, it.totalCount
+}
+
+// Reset resets the iterator to the beginning.
+func (it *VectorIterator) Reset() {
+	it.currentID = 0
+	it.totalCount = uint64(it.index.GetCurrentCount())
+}
+
+// ExportFunc is called for each element during export.
+// Return an error to stop the export early.
+type ExportFunc func(label uint64, vector []float32, isDeleted bool) error
+
+// Export iterates over all elements and calls the provided function.
+// This is memory-efficient - only one vector is loaded at a time.
+// Set includeDeleted=true to include soft-deleted elements.
+func (i *Index) Export(includeDeleted bool, fn ExportFunc) error {
+	iter, err := i.NewIterator()
+	if err != nil {
+		return err
+	}
+
+	for iter.Next() {
+		elem, err := iter.Element()
+		if err != nil {
+			iter.Advance()
+			continue
+		}
+
+		if !includeDeleted && elem.IsDeleted {
+			iter.Advance()
+			continue
+		}
+
+		vector, err := iter.Vector()
+		if err != nil {
+			iter.Advance()
+			continue
+		}
+
+		if err := fn(elem.Label, vector, elem.IsDeleted); err != nil {
+			return err
+		}
+
+		iter.Advance()
+	}
+
+	return nil
+}

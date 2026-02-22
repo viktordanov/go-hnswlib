@@ -30,6 +30,23 @@ extern "C" {
   int saveIndexSafe(HNSW index, char *location);
   int markDeletedSafe(HNSW index, unsigned long long label);
   int unmarkDeletedSafe(HNSW index, unsigned long long label);
+  
+  // Vector export functions for data migration
+  // Get vector dimension
+  int getDimension(HNSW index);
+  
+  // Get vector by label into pre-allocated buffer
+  // Returns dimension on success, -1 if label not found or deleted
+  int getVectorByLabel(HNSW index, unsigned long long label, float* vector);
+  
+  // Get element info by internal ID (for iteration)
+  // Returns 0 on success, -1 if internalId out of range
+  int getElementByInternalId(HNSW index, unsigned long long internalId, 
+                             unsigned long long* label, int* isDeleted);
+  
+  // Get vector by internal ID (more efficient for bulk export)
+  // Returns dimension on success, -1 on error
+  int getVectorByInternalId(HNSW index, unsigned long long internalId, float* vector);
 #ifdef __cplusplus
 }
 #endif

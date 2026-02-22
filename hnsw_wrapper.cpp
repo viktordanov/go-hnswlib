@@ -153,3 +153,40 @@ int unmarkDeletedSafe(HNSW index, unsigned long long label) {
         return -1;
     }
 }
+
+// Vector export functions for data migration
+
+int getDimension(HNSW index) {
+    auto* alg = (hnswlib::HierarchicalNSW<float>*)index;
+    return *((size_t*)alg->dist_func_param_);
+}
+
+int getVectorByLabel(HNSW index, unsigned long long label, float* vector) {
+    try {
+        auto* alg = (hnswlib::HierarchicalNSW<float>*)index;
+        // getDataByLabel throws if label not found or deleted
+        std::vector<float> data = alg->getDataByLabel<float>(label);
+        memcpy(vector, data.data(), data.size() * sizeof(float));
+        return data.size();
+    } catch (...) {
+        return -1;
+    }
+}
+
+int getElementByInternalId(HNSW index, unsigned long long internalId, 
+                           unsigned long long* label, int* isDeleted) {
+    auto* alg = (hnswlib::HierarchicalNSW<float>*)index;
+    if (internalId >= alg->cur_element_count) return -1;
+    *label = alg->getExternalLabel(internalId);
+    *isDeleted = alg->isMarkedDeleted(internalId) ? 1 : 0;
+    return 0;
+}
+
+int getVectorByInternalId(HNSW index, unsigned long long internalId, float* vector) {
+    auto* alg = (hnswlib::HierarchicalNSW<float>*)index;
+    if (internalId >= alg->cur_element_count) return -1;
+    size_t dim = *((size_t*)alg->dist_func_param_);
+    char* data_ptr = alg->getDataByInternalId(internalId);
+    memcpy(vector, data_ptr, dim * sizeof(float));
+    return dim;
+}
